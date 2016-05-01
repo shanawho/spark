@@ -1,18 +1,3 @@
-/*********************************************************************
- * Critical Making Neck Pillow Team
- * Feather Bluefruit code to send proximity to present GPS coordinates
- * (also takes in controller button presses for demo purposes)
- * 
- This is built upon an example from Adafruit for their 
- nRF51822 based Bluefruit LE modules:
- Pick one up today in the adafruit shop!
- Adafruit invests time and resources providing this open source code,
- please support Adafruit and open-source hardware by purchasing
- products from Adafruit!
- MIT license, check LICENSE for more information
- All text above, and the splash screen below must be included in
- any redistribution
-*********************************************************************/
 
 #include <string.h>
 #include <Arduino.h>
@@ -41,6 +26,7 @@ Sd2Card card;
 SdVolume volume;
 SdFile root;
 File myFile;
+String fileName = "datalog.csv";
 
 // change this to match your SD shield or module;
 // Arduino Ethernet shield: pin 4
@@ -117,15 +103,7 @@ void printHex(const uint8_t * data, const uint32_t numBytes);
 // the packet buffer
 extern uint8_t packetbuffer[];
 
-// preset GPS coordinates for four points
-// currently Berkeley, San Francisco Golden Gate Bridge, the Eiffel Tower, and the South Pole
-//float gpsx[4] = {37.8759, 37.8197, 48.8582, -90.0000};
-//float gpsy[4] = {-122.259, -122.4786, 2.2946, 0.0000};
-//float threshold = 0.01; // x and y proximity for being "in the zone"
-int gps_zone_old = 0, gps_zone_new = 0; // 0 or 1-4 when inside a zone
-
-int fsrReading;
-int threshold = 500;
+float threshold = .5;
 
 /**************************************************************************/
 /*!
@@ -182,22 +160,22 @@ void setup(void)
 
 
   // print the type and size of the first FAT-type volume
-  uint32_t volumesize;
-  Serial.print("\nVolume type is FAT");
-  Serial.println(volume.fatType(), DEC);
-  Serial.println();
-
-  volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
-  volumesize *= volume.clusterCount();       // we'll have a lot of clusters
-  volumesize *= 512;                            // SD card blocks are always 512 bytes
-  Serial.print("Volume size (bytes): ");
-  Serial.println(volumesize);
-  Serial.print("Volume size (Kbytes): ");
-  volumesize /= 1024;
-  Serial.println(volumesize);
-  Serial.print("Volume size (Mbytes): ");
-  volumesize /= 1024;
-  Serial.println(volumesize);
+//  uint32_t volumesize;
+//  Serial.print("\nVolume type is FAT");
+//  Serial.println(volume.fatType(), DEC);
+//  Serial.println();
+//
+//  volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
+//  volumesize *= volume.clusterCount();       // we'll have a lot of clusters
+//  volumesize *= 512;                            // SD card blocks are always 512 bytes
+//  Serial.print("Volume size (bytes): ");
+//  Serial.println(volumesize);
+//  Serial.print("Volume size (Kbytes): ");
+//  volumesize /= 1024;
+//  Serial.println(volumesize);
+//  Serial.print("Volume size (Mbytes): ");
+//  volumesize /= 1024;
+//  Serial.println(volumesize);
 
 
   Serial.println("\nFiles found on the card (name, date and size in bytes): ");
@@ -207,7 +185,8 @@ void setup(void)
   root.ls(LS_R | LS_DATE | LS_SIZE);
 
 
-  
+
+  // Initialize chip
   if (!SD.begin(chipSelect)) {
     Serial.println("initialization failed!");
     return;
@@ -256,10 +235,10 @@ void setup(void)
 */
 /**************************************************************************/
 
-// Write to card
 
-void writeCard(float lat, float lon) {
 
+boolean near(float a, float b) {
+  return (abs(a-b) < threshold);
 }
 
 
@@ -270,27 +249,28 @@ void saveLocation(float lat, float lon) {
 
    // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
-  myFile = SD.open("locations.txt", FILE_WRITE);
+  myFile = SD.open(fileName, FILE_WRITE);
 
   
   // if the file opened okay, write to it:
   if (myFile) {
-    Serial.print("Writing to locations.txt...\t");
+    Serial.println("Writing");
     Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
     Serial.print('\t');
     Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
     Serial.print('\t');
 
-    myFile.println(lat, 4);
-    myFile.print(", ");
+    myFile.print(lat, 4);
+    myFile.print(",");
     myFile.print(lon, 4);
+    myFile.print("\n");
     
   // close the file:
     myFile.close();
     Serial.println("done.");
   } else {
     // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
+    Serial.println("error opening "+fileName);
   }
   
 }
@@ -299,7 +279,49 @@ void saveLocation(float lat, float lon) {
 boolean alreadySaved(float lat, float lon) {
   // dummy filler for now
   // Check by looping through locations on SD card
-  return false;
+
+  String currLat = "";
+  String currLon = "";
+  String temp = "";
+
+  myFile = SD.open(fileName);
+  if (myFile) {
+    Serial.println("reading from " + fileName);
+
+    while (myFile.available()) {
+
+      char ch = myFile.read();
+
+      if (ch == '\n') {
+        // NEW LINE means we have a lat and lon
+        currLon = temp;
+        temp = "";
+
+        Serial.println("Lat: " + currLat);
+        Serial.println("Lon: " + currLon);
+
+        // Check if this lat, lon i s already logged
+        if (near(currLat.toFloat(), lat) && near(currLon.toFloat(), lon)) {
+          myFile.close();
+          return true;
+        }
+      } else if (ch == ',') {
+        currLat = temp;
+        temp = "";
+      } else {
+        temp = temp + ch;
+      }
+
+    }
+    Serial.println("closing file");
+    myFile.close();
+    return false;
+    
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening "+fileName);
+    return false;
+  }
 }
 
 
@@ -310,67 +332,54 @@ boolean alertUser() {
 
 void loop(void)
 {
-
-
-/**************************************************************************/
-/*!
-    @brief  Constantly poll for new command or response data
-*/
-/**************************************************************************/
-
-
   
   /* Wait for new data to arrive */
   uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
   if (len == 0) return;
 
-  // Buttons
-  if (packetbuffer[1] == 'B') {
-    uint8_t buttnum = packetbuffer[2] - '0';
-    boolean pressed = packetbuffer[3] - '0';
-    // print button number to Raspberry Pi (if 1-4)
-    if (pressed && buttnum > 0 && buttnum < 5) {
-      Serial.print(buttnum);
-    } else if (pressed && buttnum > 4 && buttnum < 9) {
-      // send 0 to simulate leaving zone for arrow buttons 5-8
-      Serial.print(0);
-    }
-
-    // for debug LED
-    if (buttnum == 1) {
-      digitalWrite(13, HIGH); // reference LED    
-    }
-    if (buttnum == 2) {
-      digitalWrite(13, LOW);    
-    }
-  }
+//  // Buttons
+//  if (packetbuffer[1] == 'B') {
+//    uint8_t buttnum = packetbuffer[2] - '0';
+//    boolean pressed = packetbuffer[3] - '0';
+//    // print button number to Raspberry Pi (if 1-4)
+//    if (pressed && buttnum > 0 && buttnum < 5) {
+//      Serial.print(buttnum);
+//    } else if (pressed && buttnum > 4 && buttnum < 9) {
+//      // send 0 to simulate leaving zone for arrow buttons 5-8
+//      Serial.print(0);
+//    }
+//
+//    // for debug LED
+//    if (buttnum == 1) {
+//      digitalWrite(13, HIGH); // reference LED    
+//    }
+//    if (buttnum == 2) {
+//      digitalWrite(13, LOW);    
+//    }
+//  }
 
     // GPS Location
   if (packetbuffer[1] == 'L' && lat != parsefloat(packetbuffer+2) && lon != parsefloat(packetbuffer+10)) {
     lat = parsefloat(packetbuffer+2);
     lon = parsefloat(packetbuffer+6);
-    alt = parsefloat(packetbuffer+10);
-//    Serial.print("GPS Location\t");
-//    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
-//    Serial.print('\t');
-//    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
-//    Serial.print('\t');
-//    Serial.print(alt, 4); Serial.println(" meters");
+    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
+    Serial.print('\t');
+    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
+    Serial.print('\t');
+
+
+
+    // Simple if / else right now
+    if (alreadySaved(lat, lon)) {
+      Serial.println("already saved");
+      alertUser();
+    } else {
+      Serial.println("not already saved");
+      saveLocation(lat, lon);
+    }
+   
   }
 
-
-  // If the current lat, lon is already saved, 
-  // then the scarf should alert (buzz/make cold)
-  if (alreadySaved(lat, lon)) {
-    alertUser();
-  }
-
-  // hook this up to button later
-
-  if (!alreadySaved(lat, lon)) {
-    saveLocation(lat, lon);
-  }
- 
   //delay(100);
 
 
