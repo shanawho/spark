@@ -1,35 +1,3 @@
-#include <Adafruit_NeoPixel.h>
-#ifdef __AVR__
-  #include <avr/power.h>
-#endif
-
-#define RECORD_BUT 13
-#define MODE_BUT 11
-#define NP_PIN 6
-#define PELT 9
-
-#define NUM_NEOPIXELS 19
-// include one (0th) for mode.
-
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_NEOPIXELS, NP_PIN, NEO_GRB + NEO_KHZ800);
-
-const int red[3] = {225, 20, 20};
-const int blue[3] = {127, 203, 223};
-
-int recordState = 0;         // variable for reading the pushbutton status
-int modeState = 0;           // variable for reading the pushbutton status
-bool playback = false;       // start on recording mode.
-
-
-
 #include <string.h>
 #include <Arduino.h>
 #include <SPI.h>
@@ -42,11 +10,33 @@ bool playback = false;       // start on recording mode.
 #include "Adafruit_BluefruitLE_UART.h"
 #include "BluefruitConfig.h"
 
-
 // include the SD library:
 #include <SPI.h>
 #include <SD.h>
 
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
+
+#define RECORD_BUT 13
+#define MODE_BUT 11
+#define NP_PIN 6
+#define PELT 9
+
+// include one (0th) for mode.
+#define NUM_NEOPIXELS 19
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_NEOPIXELS, NP_PIN, NEO_GRB + NEO_KHZ800);
+
+const int red[3] = {225, 20, 20};
+const int blue[3] = {127, 203, 223};
+
+int recordState = 0;         // variable for reading the pushbutton status
+int lastRecordState = 0;
+int modeState = 0;           // variable for reading the pushbutton status
+int lastModeState = 0;
+bool playback = false;       // start on recording mode.
 
 //save last location
 float lat, lon;
@@ -61,12 +51,6 @@ String fileName = "datalog.csv";
 
 // change this to match your SD CARD CS PIN
 const int chipSelect = A5;
-
-// Peltier pin
-const int peltierPin = 9;
-
-
-
 
 /*=========================================================================
     APPLICATION SETTINGS
@@ -103,24 +87,8 @@ const int peltierPin = 9;
     #define MODE_LED_BEHAVIOUR          "MODE"
 /*=========================================================================*/
 
-// Create the bluefruit object, either software serial...uncomment these lines
-/*
-SoftwareSerial bluefruitSS = SoftwareSerial(BLUEFRUIT_SWUART_TXD_PIN, BLUEFRUIT_SWUART_RXD_PIN);
-Adafruit_BluefruitLE_UART ble(bluefruitSS, BLUEFRUIT_UART_MODE_PIN,
-                      BLUEFRUIT_UART_CTS_PIN, BLUEFRUIT_UART_RTS_PIN);
-*/
-
-/* ...or hardware serial, which does not need the RTS/CTS pins. Uncomment this line */
-// Adafruit_BluefruitLE_UART ble(BLUEFRUIT_HWSERIAL_NAME, BLUEFRUIT_UART_MODE_PIN);
-
 /* ...hardware SPI, using SCK/MOSI/MISO hardware SPI pins and then user selected CS/IRQ/RST */
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
-
-/* ...software SPI, using SCK/MOSI/MISO user-defined SPI pins and then user selected CS/IRQ/RST */
-//Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_SCK, BLUEFRUIT_SPI_MISO,
-//                             BLUEFRUIT_SPI_MOSI, BLUEFRUIT_SPI_CS,
-//                             BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
-
 
 // A small helper
 void error(const __FlashStringHelper*err) {
@@ -151,9 +119,6 @@ void setup(void) {
 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
-//
-//  while (!Serial);  // required for Flora & Micro
-//  delay(500);
 
   Serial.begin(9600);
 
@@ -274,13 +239,9 @@ void setup(void) {
 */
 /**************************************************************************/
 
-
-
 boolean near(float a, float b) {
   return (abs(a-b) < threshold);
 }
-
-
 
 // Save location onto card
 void saveLocation(float lat, float lon) {
@@ -395,38 +356,41 @@ void peltOff() {
 
 void loop(void)
 {
-  
   recordState = digitalRead(RECORD_BUT);
   modeState = digitalRead(MODE_BUT);
   
-  if (modeState == HIGH) {
-    Serial.println("Mode button pressed");
-    playback = !playback;
-    Serial.println("Playback is now ");
-    Serial.println(playback);
-    if (playback){
-      strip.setPixelColor(0, strip.Color(blue[0], blue[1], blue[2]));
-    } else {
-      strip.setPixelColor(0, strip.Color(0, 0, 0));
+  if (lastModeState != modeState) { // state has changed.
+    if (modeState == HIGH) {
+      Serial.println("Mode button pressed");
+      playback = !playback;
+      Serial.println("Playback is now ");
+      Serial.println(playback);
+      if (playback){
+        strip.setPixelColor(0, strip.Color(blue[0], blue[1], blue[2]));
+      } else {
+        strip.setPixelColor(0, strip.Color(0, 0, 0));
+      }
+      strip.show();
     }
-    strip.show();
   }
+  lastModeState = modeState;
 
-
-
-  if (recordState == HIGH) {
-    Serial.println("Record button pressed");
-    // get GPS location from phone
-    // store GPS on SD card
-
-    if (!playback){
-      Serial.println("I should be cooling down now");
-      if (!alreadySaved(lat, lon)) {
-        saveLocation(lat, lon);
+  if (lastRecordState != recordState) { // state has changed.
+    if (recordState == HIGH) {
+      Serial.println("Record button pressed");
+      // get GPS location from phone
+      // store GPS on SD card
+  
+      if (playback){
+        Serial.println("I should be cooling down now");
+          coolDown();
+          fadeInOut(5);
+          peltOff();
       }
     }
   }
-  delay(200);
+  lastRecordState = recordState;
+  delay(50);
 
   
   
@@ -456,7 +420,4 @@ void loop(void)
     }
    
   }
-
-  //delay(100);
-  
 }
