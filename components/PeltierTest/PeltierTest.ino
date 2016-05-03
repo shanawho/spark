@@ -8,14 +8,16 @@ int motorPin = 9;
 void setup() 
 { 
   pinMode(motorPin, OUTPUT);
-  Serial.begin(9600);
-  while (! Serial);
-  Serial.println("Speed 0 to 255");
+  delay(2000);
 } 
  
  
 void loop() 
 { 
+  analogWrite(motorPin, 255);
+  delay(5000);
+  analogWrite(motorPin, 0);
+  delay(5000);
   if (Serial.available())
   {
     int speed = Serial.parseInt();
