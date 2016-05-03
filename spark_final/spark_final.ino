@@ -381,12 +381,13 @@ void loop(void)
       // get GPS location from phone
       // store GPS on SD card
   
-      if (playback){
+      if (!playback){
         Serial.println("I should be cooling down now");
-          coolDown();
-          fadeInOut(5);
-          peltOff();
+        if (!alreadySaved(lat, lon)) {
+          saveLocation(lat, lon);
+        }
       }
+      
     }
   }
   lastRecordState = recordState;
