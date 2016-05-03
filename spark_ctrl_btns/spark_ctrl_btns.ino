@@ -49,18 +49,18 @@ bool playback = false;       // start on recording mode.
 
 
 //save last location
-float lat, lon;
+float lat, lon, alt;
 
 
 // set up variables using the SD utility library functions:
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-File myFile;
-String fileName = "datalog.csv";
+//Sd2Card card;
+//SdVolume volume;
+//SdFile root;
+//File myFile;
+//String fileName = "datalog.csv";
 
 // change this to match your SD CARD CS PIN
-const int chipSelect = A5;
+//const int chipSelect = A5;
 
 // Peltier pin
 const int peltierPin = 9;
@@ -160,78 +160,78 @@ void setup(void) {
 
   // SD Card initialization
   Serial.print("\nInitializing SD card...");
-
-  // we'll use the initialization code from the utility libraries
-  // since we're just testing if the card is working!
-  if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    Serial.println("initialization failed. Things to check:");
-    Serial.println("* is a card inserted?");
-    Serial.println("* is your wiring correct?");
-    Serial.println("* did you change the chipSelect pin to match your shield or module?");
-    return;
-  } else {
-    Serial.println("Wiring is correct and a card is present.");
-  }
-
-
- 
-  // print the type of card
-  Serial.print("\nCard type: ");
-  switch (card.type()) {
-    case SD_CARD_TYPE_SD1:
-      Serial.println("SD1");
-      break;
-    case SD_CARD_TYPE_SD2:
-      Serial.println("SD2");
-      break;
-    case SD_CARD_TYPE_SDHC:
-      Serial.println("SDHC");
-      break;
-    default:
-      Serial.println("Unknown");
-  }
-
-  // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
-  if (!volume.init(card)) {
-    Serial.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
-    return;
-  }
+//
+//  // we'll use the initialization code from the utility libraries
+//  // since we're just testing if the card is working!
+//  if (!card.init(SPI_HALF_SPEED, chipSelect)) {
+//    Serial.println("initialization failed. Things to check:");
+//    Serial.println("* is a card inserted?");
+//    Serial.println("* is your wiring correct?");
+//    Serial.println("* did you change the chipSelect pin to match your shield or module?");
+//    return;
+//  } else {
+//    Serial.println("Wiring is correct and a card is present.");
+//  }
+//
+//
+// 
+//  // print the type of card
+//  Serial.print("\nCard type: ");
+//  switch (card.type()) {
+//    case SD_CARD_TYPE_SD1:
+//      Serial.println("SD1");
+//      break;
+//    case SD_CARD_TYPE_SD2:
+//      Serial.println("SD2");
+//      break;
+//    case SD_CARD_TYPE_SDHC:
+//      Serial.println("SDHC");
+//      break;
+//    default:
+//      Serial.println("Unknown");
+//  }
+//
+//  // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
+//  if (!volume.init(card)) {
+//    Serial.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
+//    return;
+//  }
 
 
   // print the type and size of the first FAT-type volume
-  uint32_t volumesize;
-  Serial.print("\nVolume type is FAT");
-  Serial.println(volume.fatType(), DEC);
-  Serial.println();
+//  uint32_t volumesize;
+//  Serial.print("\nVolume type is FAT");
+//  Serial.println(volume.fatType(), DEC);
+//  Serial.println();
+//
+//  volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
+//  volumesize *= volume.clusterCount();       // we'll have a lot of clusters
+//  volumesize *= 512;                            // SD card blocks are always 512 bytes
+//  Serial.print("Volume size (bytes): ");
+//  Serial.println(volumesize);
+//  Serial.print("Volume size (Kbytes): ");
+//  volumesize /= 1024;
+//  Serial.println(volumesize);
+//  Serial.print("Volume size (Mbytes): ");
+//  volumesize /= 1024;
+//  Serial.println(volumesize);
 
-  volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
-  volumesize *= volume.clusterCount();       // we'll have a lot of clusters
-  volumesize *= 512;                            // SD card blocks are always 512 bytes
-  Serial.print("Volume size (bytes): ");
-  Serial.println(volumesize);
-  Serial.print("Volume size (Kbytes): ");
-  volumesize /= 1024;
-  Serial.println(volumesize);
-  Serial.print("Volume size (Mbytes): ");
-  volumesize /= 1024;
-  Serial.println(volumesize);
-
-
-  Serial.println("\nFiles found on the card (name, date and size in bytes): ");
-//  root.openRoot(volume);
-
-  // list all files in the card with date and size
-  root.ls(LS_R | LS_DATE | LS_SIZE);
+//
+//  Serial.println("\nFiles found on the card (name, date and size in bytes): ");
+////  root.openRoot(volume);
+//
+//  // list all files in the card with date and size
+//  root.ls(LS_R | LS_DATE | LS_SIZE);
 
 
 
-  // Initialize chip
-  if (!SD.begin(chipSelect)) {
-    Serial.println("initialization failed!");
-    return;
-  }
-  Serial.println("initialization done.");
-
+//  // Initialize chip
+//  if (!SD.begin(chipSelect)) {
+//    Serial.println("initialization failed!");
+//    return;
+//  }
+//  Serial.println("initialization done.");
+//
 
 
 
@@ -275,94 +275,94 @@ void setup(void) {
 /**************************************************************************/
 
 
-
-boolean near(float a, float b) {
-  return (abs(a-b) < threshold);
-}
-
-
-
-// Save location onto card
-void saveLocation(float lat, float lon) {
-  // SD card code
-
-   // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  myFile = SD.open(fileName, FILE_WRITE);
-
-  
-  // if the file opened okay, write to it:
-  if (myFile) {
-    Serial.println("Writing");
-    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
-    Serial.print('\t');
-    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
-    Serial.print('\t');
-
-    myFile.print(lat, 4);
-    myFile.print(",");
-    myFile.print(lon, 4);
-    myFile.print("\n");
-    
-  // close the file:
-    myFile.close();
-    Serial.println("done.");
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening "+fileName);
-  }
-  
-}
+//
+//boolean near(float a, float b) {
+//  return (abs(a-b) < threshold);
+//}
 
 
-// Checks if location is already saved on SD card
-boolean alreadySaved(float lat, float lon) {
-  // dummy filler for now
-  // Check by looping through locations on SD card
 
-  String currLat = "";
-  String currLon = "";
-  String temp = "";
+//// Save location onto card
+//void saveLocation(float lat, float lon) {
+//  // SD card code
+//
+//   // open the file. note that only one file can be open at a time,
+//  // so you have to close this one before opening another.
+//  myFile = SD.open(fileName, FILE_WRITE);
+//
+//  
+//  // if the file opened okay, write to it:
+//  if (myFile) {
+//    Serial.println("Writing");
+//    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
+//    Serial.print('\t');
+//    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
+//    Serial.print('\t');
+//
+//    myFile.print(lat, 4);
+//    myFile.print(",");
+//    myFile.print(lon, 4);
+//    myFile.print("\n");
+//    
+//  // close the file:
+//    myFile.close();
+//    Serial.println("done.");
+//  } else {
+//    // if the file didn't open, print an error:
+//    Serial.println("error opening "+fileName);
+//  }
+//  
+//}
 
-  myFile = SD.open(fileName);
-  if (myFile) {
-    Serial.println("reading from " + fileName);
-
-    while (myFile.available()) {
-
-      char ch = myFile.read();
-
-      if (ch == '\n') {
-        // NEW LINE means we have a lat and lon
-        currLon = temp;
-        temp = "";
-
-        Serial.println("Lat: " + currLat);
-        Serial.println("Lon: " + currLon);
-
-        // Check if this lat, lon i s already logged
-        if (near(currLat.toFloat(), lat) && near(currLon.toFloat(), lon)) {
-          myFile.close();
-          return true;
-        }
-      } else if (ch == ',') {
-        currLat = temp;
-        temp = "";
-      } else {
-        temp = temp + ch;
-      }
-
-    }
-    Serial.println("closing file");
-    myFile.close();
-    return false;
-    
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening "+fileName);
-    return false;
-  }
-}
+//
+//// Checks if location is already saved on SD card
+//boolean alreadySaved(float lat, float lon) {
+//  // dummy filler for now
+//  // Check by looping through locations on SD card
+//
+//  String currLat = "";
+//  String currLon = "";
+//  String temp = "";
+//
+//  myFile = SD.open(fileName);
+//  if (myFile) {
+//    Serial.println("reading from " + fileName);
+//
+//    while (myFile.available()) {
+//
+//      char ch = myFile.read();
+//
+//      if (ch == '\n') {
+//        // NEW LINE means we have a lat and lon
+//        currLon = temp;
+//        temp = "";
+//
+//        Serial.println("Lat: " + currLat);
+//        Serial.println("Lon: " + currLon);
+//
+//        // Check if this lat, lon i s already logged
+//        if (near(currLat.toFloat(), lat) && near(currLon.toFloat(), lon)) {
+//          myFile.close();
+//          return true;
+//        }
+//      } else if (ch == ',') {
+//        currLat = temp;
+//        temp = "";
+//      } else {
+//        temp = temp + ch;
+//      }
+//
+//    }
+//    Serial.println("closing file");
+//    myFile.close();
+//    return false;
+//    
+//  } else {
+//    // if the file didn't open, print an error:
+//    Serial.println("error opening "+fileName);
+//    return false;
+//  }
+//}
 
 
 //Fade red in & out n times.
@@ -419,11 +419,11 @@ void loop(void)
     // get GPS location from phone
     // store GPS on SD card
 
-    if (!playback){
+    if (playback){
       Serial.println("I should be cooling down now");
-      if (!alreadySaved(lat, lon)) {
-        saveLocation(lat, lon);
-      }
+        coolDown();
+        fadeInOut(5);
+        peltOff();
     }
   }
   delay(200);
@@ -434,29 +434,53 @@ void loop(void)
   uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
   if (len == 0) return;
 
-    // GPS Location
-  if (packetbuffer[1] == 'L' && lat != parsefloat(packetbuffer+2) && lon != parsefloat(packetbuffer+10)) {
-    lat = parsefloat(packetbuffer+2);
-    lon = parsefloat(packetbuffer+6);
-    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
-    Serial.print('\t');
-    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
-    Serial.print('\t');
+  // Buttons
+  if (packetbuffer[1] == 'B') {
+    uint8_t buttnum = packetbuffer[2] - '0';
+    boolean pressed = packetbuffer[3] - '0';
+    // print button number to Raspberry Pi (if 1-4)
+    if (pressed && buttnum > 0 && buttnum < 5) {
+      Serial.print(buttnum);
+    } else if (pressed && buttnum > 4 && buttnum < 9) {
+      // send 0 to simulate leaving zone for arrow buttons 5-8
+      Serial.print(0);
+    }
 
-    // Simple if / else right now
-    if (playback) {
-      if (alreadySaved(lat, lon)) {
-        Serial.println("already saved");
-        Serial.println("I should be cooling down now");
+    // for debug LED
+    if (buttnum == 1) {
+      if (playback) {
         coolDown();
         fadeInOut(5);
         peltOff();
       }
-      
     }
-   
   }
+//
+//    // GPS Location
+//  if (packetbuffer[1] == 'L' && lat != parsefloat(packetbuffer+2) && lon != parsefloat(packetbuffer+10)) {
+//    lat = parsefloat(packetbuffer+2);
+//    lon = parsefloat(packetbuffer+6);
+//    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
+//    Serial.print('\t');
+//    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
+//    Serial.print('\t');
+//
+//
+//
+//    // Simple if / else right now
+//    if (alreadySaved(lat, lon)) {
+//      Serial.println("already saved");
+//      alertUser();
+//    } else {
+//      Serial.println("not already saved");
+//      saveLocation(lat, lon);
+//    }
+//   
+//  }
 
   //delay(100);
+
+
+
   
 }
