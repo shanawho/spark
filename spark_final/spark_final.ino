@@ -387,7 +387,6 @@ void loop(void)
           saveLocation(lat, lon);
         }
       }
-      
     }
   }
   lastRecordState = recordState;

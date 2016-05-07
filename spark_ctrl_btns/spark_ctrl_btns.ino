@@ -181,6 +181,7 @@ void loop(void)
 {
   recordState = digitalRead(RECORD_BUT);
   modeState = digitalRead(MODE_BUT);
+  Serial.println(modeState);
   
   if (lastModeState != modeState) { // state has changed.
     if (modeState == HIGH) {
@@ -203,13 +204,6 @@ void loop(void)
       Serial.println("Record button pressed");
       // get GPS location from phone
       // store GPS on SD card
-  
-      if (playback){
-        Serial.println("I should be cooling down now");
-          coolDown();
-          fadeInOut(5);
-          peltOff();
-      }
     }
   }
   lastRecordState = recordState;
@@ -237,7 +231,7 @@ void loop(void)
     if (buttnum == 1) {
       if (playback) {
         coolDown();
-        fadeInOut(5);
+        fadeInOut(3);
         peltOff();
       }
     }
